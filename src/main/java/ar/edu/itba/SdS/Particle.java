@@ -22,9 +22,15 @@ public class Particle {
         return distSq < minDist * minDist;
     }
 
+    public void moveParticle(double dt) {
+        x+=vx*dt;
+        y+=vy*dt;
+    }
     public double getKineticEnergy(){
         return mass*(vx*vx+vy*vy)/2;
     }
+    public double getXVelocity(){return this.vx;}
+    public double getYVelocity(){return this.vy;}
 
     public int getCollisionCount(){return collisionCount;}
     public double getVelocityModule(){return Math.sqrt(vx*vx+vy*vy);}
