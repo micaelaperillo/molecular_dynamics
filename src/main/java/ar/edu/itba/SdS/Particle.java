@@ -1,0 +1,37 @@
+package ar.edu.itba.SdS;
+
+
+public class Particle {
+    private final double radius,mass;
+    private double x, y, vx, vy;
+    private int collisionCount=0;
+
+    public Particle(double radius,double x,double y,double vx,double vy,double mass) {
+        this.radius = radius;
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.mass = mass;
+    }
+    public boolean overlapsWith(Particle other) {
+        double dx = this.x - other.x;
+        double dy = this.y - other.y;
+        double distSq = dx * dx + dy * dy;
+        double minDist = this.radius + other.radius;
+        return distSq < minDist * minDist;
+    }
+
+    public double getKineticEnergy(){
+        return mass*(vx*vx+vy*vy)/2;
+    }
+
+    public int getCollisionCount(){return collisionCount;}
+    public double getVelocityModule(){return Math.sqrt(vx*vx+vy*vy);}
+    public double getRadius() {return radius;}
+    public double getMass() {return mass;}
+    public double getXPosition() {return x;}
+    public double getYPosition() {return y;}
+
+
+}
