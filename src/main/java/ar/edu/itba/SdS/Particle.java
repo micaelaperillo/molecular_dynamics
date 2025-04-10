@@ -39,5 +39,8 @@ public class Particle {
     public double getXPosition() {return x;}
     public double getYPosition() {return y;}
 
-
+    public void setVelocity(double vx, double vy) {
+        this.vx = vx;
+        this.vy = vy;
+    }
 }
