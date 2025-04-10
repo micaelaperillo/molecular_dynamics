@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.Random;
 
 public class Container {
-    private static final double CONTAINER_DIAMETER=0.1;
+    public static final double CONTAINER_DIAMETER=0.1;
+    public static final double OBSTACLE_RADIUS=0.005;
     private final List<Particle> particles=new ArrayList<>();
-    private static final double OBSTACLE_RADIUS=0.005;
     private static final Random rand=new Random();
 
     private final double particlesSpeed,particlesRadius;
