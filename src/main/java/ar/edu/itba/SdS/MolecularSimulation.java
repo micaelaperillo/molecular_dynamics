@@ -27,7 +27,9 @@ public class MolecularSimulation {
     public void runSimulation() {
         while (!eventQueue.isEmpty() && currentTime < maxSimulationTime) {
             Event event = eventQueue.poll();
-            double eventTime = event.getTime();
+            if(!event.isValidEvent())
+                continue;
+            double eventTime = event.getEventTime();
             double dt = eventTime - currentTime;
 
             // Advance particles to the time of the event
@@ -93,9 +95,9 @@ public class MolecularSimulation {
 
     private void predictCollisions(Particle p) {
         if (p != null) {
+            calculateParticleCollisions(p);
             calculateWallCollision(p);
             calculateObstacleCollision(p);
-            calculateParticleCollisions(p);
         }
     }
 
