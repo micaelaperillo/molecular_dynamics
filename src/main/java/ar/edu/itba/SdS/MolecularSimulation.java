@@ -60,7 +60,24 @@ public class MolecularSimulation {
     }
 
     private void handleParticleCollision(Particle p1, Particle p2) {
-        // TODO Implement
+        double dx=p2.getXPosition()-p1.getXPosition();
+        double dy=p2.getYPosition()-p1.getYPosition();
+        double dvx=p2.getXVelocity()-p1.getYVelocity();
+        double dvy=p2.getYVelocity()-p1.getYVelocity();
+
+        double dvdr=dx*dvx+dy*dvy;
+
+        double sigma=Math.sqrt(dx*dx+dy*dy);
+        double j=(2*p1.getMass()*p2.getMass()*dvdr)/(sigma*(p1.getMass()+p2.getMass()));
+
+        double jx=j*dx/sigma;
+        double jy=j*dy/sigma;
+
+        p1.setVelocity(p1.getXVelocity()+(jx/p1.getMass()),p1.getYVelocity()+(jy/p1.getMass()));
+        p2.setVelocity(p2.getXVelocity()-(jx/p2.getMass()),p2.getYVelocity()-(jy/p2.getMass()));
+
+        p1.incrementCollisionCount();
+        p2.incrementCollisionCount();
     }
 
     private void handleWallCollision(Particle p) {
@@ -100,9 +117,8 @@ public class MolecularSimulation {
     private void predictCollisions(Particle p) {
         if (p != null) {
             calculateParticleCollisions(p);
-            calculateWallCollision(p);
             calculateObstacleCollision(p);
-
+            calculateWallCollision(p);
         }
     }
 

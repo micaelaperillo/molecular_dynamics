@@ -31,7 +31,7 @@ public class Particle {
     }
     public double getXVelocity(){return this.vx;}
     public double getYVelocity(){return this.vy;}
-
+    public void incrementCollisionCount(){this.collisionCount++;}
     public int getCollisionCount(){return collisionCount;}
     public double getVelocityModule(){return Math.sqrt(vx*vx+vy*vy);}
     public double getRadius() {return radius;}
