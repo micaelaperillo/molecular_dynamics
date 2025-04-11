@@ -9,9 +9,10 @@ public class MolecularSimulation {
     private final List<Particle> particles;
     private double currentTime=0;
     private final double maxSimulationTime;
-
-    public MolecularSimulation(int particlesAmount, double particlesSpeed, double particlesRadius, double maxSimulationTime) {
-        this.container = new Container(particlesAmount, particlesSpeed, particlesRadius);
+    private final boolean obstaclePresent;
+    public MolecularSimulation(int particlesAmount, double particlesSpeed, double particlesRadius, double maxSimulationTime,boolean obstaclePresent) {
+        this.container = new Container(particlesAmount, particlesSpeed, particlesRadius,obstaclePresent);
+        this.obstaclePresent=obstaclePresent;
         this.particles = container.getParticles();
         this.maxSimulationTime = maxSimulationTime;
         container.initializeParticles();
@@ -78,6 +79,9 @@ public class MolecularSimulation {
     }
 
     private void handleObstacleCollision(Particle p) {
+        if(!this.obstaclePresent)
+            return;
+        // TODO Implement
         p.setVelocity(-p.getXVelocity(), -p.getYVelocity());
     }
     
@@ -98,6 +102,7 @@ public class MolecularSimulation {
             calculateParticleCollisions(p);
             calculateWallCollision(p);
             calculateObstacleCollision(p);
+
         }
     }
 
@@ -140,6 +145,8 @@ public class MolecularSimulation {
 
     // Fixed obstacle collision: Intersection with circle of radius Ro
     private void calculateObstacleCollision(Particle p) {
+        if (!this.obstaclePresent)
+            return;
         double x = p.getXPosition(), y = p.getYPosition();
         double vx = p.getXVelocity(), vy = p.getYVelocity();
         double radius = p.getRadius();
