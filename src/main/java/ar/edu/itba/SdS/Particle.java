@@ -21,7 +21,10 @@ public class Particle {
         double minDist = this.radius + other.radius;
         return distSq < minDist * minDist;
     }
-
+    @Override
+    public String toString(){
+        return String.format("%.3f %.3f %.3f %.3f\n",this.x,this.y,this.vx,this.vy);
+    }
     public void moveParticle(double dt) {
         x+=vx*dt;
         y+=vy*dt;

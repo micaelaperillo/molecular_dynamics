@@ -1,5 +1,8 @@
 package ar.edu.itba.SdS;
 
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
 
@@ -25,7 +28,8 @@ public class MolecularSimulation {
         }
     }
 
-    public void runSimulation() {
+    public void runSimulation() throws IOException{
+        Files.deleteIfExists(Paths.get(String.format("output-%d.txt",particles.size())));
         while (!eventQueue.isEmpty() && currentTime < maxSimulationTime) {
             Event event = eventQueue.poll();
             if(!event.isValidEvent())
@@ -54,6 +58,7 @@ public class MolecularSimulation {
                     break;
             }
 
+            writeOutput();
             // Predict new events for the particles involved in the collision
             predictNewEvents(event);
         }
@@ -119,6 +124,15 @@ public class MolecularSimulation {
             calculateParticleCollisions(p);
             calculateObstacleCollision(p);
             calculateWallCollision(p);
+        }
+    }
+    private void writeOutput() throws IOException {
+        Path path=Paths.get(String.format("output-%d.txt",particles.size()));
+        if(!Files.exists(path))
+            Files.write(path,String.format("%d\n",particles.size()).getBytes(),StandardOpenOption.CREATE,StandardOpenOption.APPEND);
+        Files.write(path,String.format("%.3f\n",currentTime).getBytes(),StandardOpenOption.APPEND);
+        for(Particle p:particles){
+            Files.write(path,p.toString().getBytes(), StandardOpenOption.APPEND);
         }
     }
 
