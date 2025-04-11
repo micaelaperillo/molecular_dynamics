@@ -78,7 +78,7 @@ public class MolecularSimulation {
     }
 
     private void handleObstacleCollision(Particle p) {
-        // TODO Implement
+        p.setVelocity(-p.getXVelocity(), -p.getYVelocity());
     }
     
     private void predictNewEvents(Event event) {
