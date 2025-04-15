@@ -3,7 +3,7 @@ package ar.edu.itba.SdS;
 import lombok.Getter;
 
 @Getter
-public class Event implements Comparable<Event> {
+public class Event {
     private final double eventTime;
     private final Particle particle1;
     private final Particle particle2;
@@ -27,11 +27,6 @@ public class Event implements Comparable<Event> {
         this.particle2CollisionsCount=particle2.getCollisionCount();
         this.particle2 = particle2;
         this.type = type;
-    }
-
-    @Override
-    public int compareTo(Event o) {
-        return Double.compare(eventTime, o.eventTime);
     }
 
     public boolean involves(Particle particle) {
