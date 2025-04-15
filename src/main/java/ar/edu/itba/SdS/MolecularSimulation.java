@@ -1,14 +1,25 @@
 package ar.edu.itba.SdS;
 
 import java.io.IOException;
-import java.nio.file.*;
-import java.util.Comparator;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.PriorityQueue;
 
 public class MolecularSimulation {
+    private static final Double EPSILON = 1e-20;
     private final Container container;
-    private final PriorityQueue<Event> eventQueue=new PriorityQueue<>();
+    private final PriorityQueue<Event> eventQueue=new PriorityQueue<>(
+            (e1, e2) -> {
+                double diff = e1.getEventTime() - e2.getEventTime();
+                if (Math.abs(diff) < EPSILON) {
+                    return 0;
+                }
+                return diff > 0 ? 1 : -1;
+            }
+    );
     private final List<Particle> particles;
     private double currentTime=0;
     private final double maxSimulationTime;
@@ -111,9 +122,6 @@ public class MolecularSimulation {
         Particle p1 = event.getParticle1();
         Particle p2 = event.getParticle2();
 
-        // Remove invalidated events for the particles involved
-        eventQueue.removeIf(e -> e.involves(p1) || (p2 != null && e.involves(p2)));
-
         // Predict new events
         predictCollisions(p1);
         predictCollisions(p2);
@@ -129,8 +137,8 @@ public class MolecularSimulation {
     private void writeOutput() throws IOException {
         Path path=Paths.get(String.format("output-%d.txt",particles.size()));
         if(!Files.exists(path))
-            Files.write(path,String.format("%d\n",particles.size()).getBytes(),StandardOpenOption.CREATE,StandardOpenOption.APPEND);
-        Files.write(path,String.format("%.3f\n",currentTime).getBytes(),StandardOpenOption.APPEND);
+            Files.write(path,String.format("%d\n",particles.size()).getBytes(),StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        Files.write(path,String.format("%.3e\n",currentTime).getBytes(),StandardOpenOption.APPEND);
         for(Particle p:particles){
             Files.write(path,p.toString().getBytes(), StandardOpenOption.APPEND);
         }
