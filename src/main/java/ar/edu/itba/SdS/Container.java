@@ -52,8 +52,6 @@ public class Container {
             if (!placed) {
                 throw new RuntimeException("Max attempts");
             }
-            System.out.println(particles.size());
-
         }
     }
 

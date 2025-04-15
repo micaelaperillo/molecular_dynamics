@@ -24,6 +24,11 @@ public class MolecularSimulation {
     private double currentTime=0;
     private final double maxSimulationTime;
     private final boolean obstaclePresent;
+    private double totalWallImpulse = 0;
+    private double totalObstacleImpulse = 0;
+    private double totalWallPressure = 0;
+    private double totalObstaclePressure = 0;
+
     public MolecularSimulation(int particlesAmount, double particlesSpeed, double particlesRadius, double maxSimulationTime,boolean obstaclePresent) {
         this.container = new Container(particlesAmount, particlesSpeed, particlesRadius,obstaclePresent);
         this.obstaclePresent=obstaclePresent;
@@ -43,35 +48,44 @@ public class MolecularSimulation {
         Files.deleteIfExists(Paths.get(String.format("output-%d.txt",particles.size())));
         while (!eventQueue.isEmpty() && currentTime < maxSimulationTime) {
             Event event = eventQueue.poll();
-            if(!event.isValidEvent())
-                continue;
             double eventTime = event.getEventTime();
-            double dt = eventTime - currentTime;
 
-            // Advance particles to the time of the event
-            for (Particle p : particles) {
-                p.moveParticle(dt);
+            // Just for debug
+            System.out.printf("CurrentTime: %.10e, EventTime: %.10e, QueueSize: %d\n",
+                    currentTime, eventTime, eventQueue.size());
+
+            if(event.isValidEvent() && eventTime > currentTime) {
+                // Advance particles to the time of the event
+                double dt = eventTime - currentTime;
+                for (Particle p : particles) {
+                    p.moveParticle(dt);
+                }
+
+                // Just for debug
+                if (eventTime > currentTime) {
+                    System.out.printf("updating time simulation by dt: %.6e\n", dt);
+                }
+                currentTime = eventTime;
+                System.out.printf("Simulation Time is now: %.6e\n", currentTime);
+
+                switch (event.getType()) {
+                    case WALL:
+                        handleWallCollision(event.getParticle1());
+                        break;
+                    case OBSTACLE:
+                        handleObstacleCollision(event.getParticle1());
+                        break;
+                    case PARTICLE_PARTICLE:
+                        handleParticleCollision(event.getParticle1(), event.getParticle2());
+                        break;
+                }
+
+                calculateAndPrintPressures();
+                writeOutput();
+                predictNewEvents(event);
             }
-
-            // Update simulation time
-            currentTime = eventTime;
-
-            // Handle the collision
-            switch (event.getType()) {
-                case WALL:
-                    handleWallCollision(event.getParticle1());
-                    break;
-                case OBSTACLE:
-                    handleObstacleCollision(event.getParticle1());
-                    break;
-                case PARTICLE_PARTICLE:
-                    handleParticleCollision(event.getParticle1(), event.getParticle2());
-                    break;
-            }
-
-            writeOutput();
-            // Predict new events for the particles involved in the collision
-            predictNewEvents(event);
+            // Just for debug
+            System.out.printf("IsValidEvent: %s, eventInTheFuture: %s\n", event.isValidEvent(), eventTime > currentTime);
         }
     }
 
@@ -97,25 +111,46 @@ public class MolecularSimulation {
     }
 
     private void handleWallCollision(Particle p) {
-        double x = p.getXPosition();
-        double y = p.getYPosition();
-        double vx = p.getXVelocity();
-        double vy = p.getYVelocity();
+        double[] position = {p.getXPosition(), p.getYPosition()};
+        double[] velocity = {p.getXVelocity(), p.getYVelocity()};
+        double norm = Math.sqrt(VectorialUtils.scalarProduct(position, position));
+        double rc = Container.CONTAINER_DIAMETER / 2.0;
 
-        double norm = Math.sqrt(x * x + y * y);
-        double normalX = x /  norm;
-        double normalY = y /  norm;
+        if (norm >= rc - p.getRadius()) {
+            double[] normal = VectorialUtils.scalarDivision(position, norm);
+            double dotProduct = VectorialUtils.scalarProduct(velocity, normal);
+            double impulseMagnitude = 2 * p.getMass() * Math.abs(dotProduct);
+            totalWallImpulse += impulseMagnitude;
 
-        // Reverse the velocity
-        double dotProduct = vx * normalX + vy * normalY;
-        p.setVelocity(vx - 2 * dotProduct * normalX, vy - 2 * dotProduct * normalY);
+            p.setVelocity(
+                    velocity[0] - 2 * dotProduct * normal[0],
+                    velocity[1] - 2 * dotProduct * normal[1]
+            );
+            p.incrementCollisionCount();
+        }
     }
 
     private void handleObstacleCollision(Particle p) {
-        if(!this.obstaclePresent)
+        if (!obstaclePresent) {
             return;
-        // TODO Implement
-        p.setVelocity(-p.getXVelocity(), -p.getYVelocity());
+        }
+
+        double[] position = {p.getXPosition(), p.getYPosition()};
+        double[] velocity = {p.getXVelocity(), p.getYVelocity()};
+        double norm = Math.sqrt(VectorialUtils.scalarProduct(position, position));
+
+        if (norm <= Container.OBSTACLE_RADIUS + p.getRadius()) {
+            double[] normal = VectorialUtils.scalarDivision(position, norm);
+            double dotProduct = VectorialUtils.scalarProduct(velocity, normal);
+            double impulseMagnitude = 2 * p.getMass() * Math.abs(dotProduct);
+            totalObstacleImpulse += impulseMagnitude;
+
+            p.setVelocity(
+                    velocity[0] - 2 * dotProduct * normal[0],
+                    velocity[1] - 2 * dotProduct * normal[1]
+            );
+            p.incrementCollisionCount();
+        }
     }
     
     private void predictNewEvents(Event event) {
@@ -139,6 +174,8 @@ public class MolecularSimulation {
         if(!Files.exists(path))
             Files.write(path,String.format("%d\n",particles.size()).getBytes(),StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         Files.write(path,String.format("%.3e\n",currentTime).getBytes(),StandardOpenOption.APPEND);
+        Files.write(path,String.format("%.3e\n",totalWallPressure).getBytes(),StandardOpenOption.APPEND);
+        Files.write(path,String.format("%.3e\n",totalObstaclePressure).getBytes(),StandardOpenOption.APPEND);
         for(Particle p:particles){
             Files.write(path,p.toString().getBytes(), StandardOpenOption.APPEND);
         }
@@ -158,13 +195,14 @@ public class MolecularSimulation {
        double [] dr={p2.getXPosition()-p1.getXPosition(), p2.getYPosition()-p1.getYPosition()};
        double [] dv={p2.getXVelocity()-p1.getXVelocity(), p2.getYVelocity()-p1.getYVelocity()};
        double dvdr=VectorialUtils.scalarProduct(dr,dv);
+       double dvdv=VectorialUtils.scalarProduct(dv,dv);
        if(dvdr>=0)
            return null;
        double sigma=p1.getRadius()+p2.getRadius();
-       double d=dvdr*dvdr-VectorialUtils.scalarProduct(dv,dv)*(VectorialUtils.scalarProduct(dr,dr)-(sigma*sigma));
-       if(d<0)
-           return null;
-       return -(dvdr+Math.sqrt(d))/VectorialUtils.scalarProduct(dv,dv);
+       double d=dvdr*dvdr-dvdv*(VectorialUtils.scalarProduct(dr,dr)-(sigma*sigma));
+       double dt = -(dvdr + Math.sqrt(d)) / dvdv;
+
+       return (d >= 0 && dt >= 0) ? dt : null;
     }
 
     // Wall collision: Intersection with circle of radius Re
@@ -209,4 +247,16 @@ public class MolecularSimulation {
         }
     }
 
+    private void calculateAndPrintPressures() {
+        double wallLength = Math.PI * Container.CONTAINER_DIAMETER; // Circumference of the container
+        double obstacleLength = 2 * Math.PI * Container.OBSTACLE_RADIUS; // Circumference of the obstacle
+
+        totalWallPressure = totalWallImpulse / (wallLength * currentTime);
+        totalObstaclePressure = obstaclePresent ? totalObstacleImpulse / (obstacleLength * currentTime) : 0;
+
+        System.out.printf("Wall Pressure: %.6e\n", totalWallPressure);
+        if (obstaclePresent) {
+            System.out.printf("Obstacle Pressure: %.6e\n", totalObstaclePressure);
+        }
+    }
 }
