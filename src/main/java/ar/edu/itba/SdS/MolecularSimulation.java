@@ -5,21 +5,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
 
 public class MolecularSimulation {
     private static final double EPSILON = 1e-20;
     private final Container container;
-    private final PriorityQueue<Event> eventQueue=new PriorityQueue<>(
-            (e1, e2) -> {
-                double diff = e1.getEventTime() - e2.getEventTime();
-                if (Math.abs(diff) < EPSILON) {
-                    return 0;
-                }
-                return diff > 0 ? 1 : -1;
-            }
-    );
+    private final PriorityQueue<Event> eventQueue=new PriorityQueue<>(Comparator.comparing(Event::getEventTime));
     private final List<Particle> particles;
     private double currentTime=0;
     private final double maxSimulationTime;
@@ -152,7 +145,7 @@ public class MolecularSimulation {
             p.incrementCollisionCount();
         }
     }
-    
+
     private void predictNewEvents(Event event) {
         Particle p1 = event.getParticle1();
         Particle p2 = event.getParticle2();
