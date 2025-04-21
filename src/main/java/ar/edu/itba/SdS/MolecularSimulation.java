@@ -233,7 +233,8 @@ public class MolecularSimulation {
         if (delta >= 0) {
             double t1 = (-b - Math.sqrt(delta)) / (2 * a);
             double t2 = (-b + Math.sqrt(delta)) / (2 * a);
-            double collisionTime = Math.min(t1 > 0 ? t1 : Double.MAX_VALUE, t2 > 0 ? t2 : Double.MAX_VALUE);
+            double threshold = 1e-10; // TODO: Check this
+            double collisionTime = Math.min(t1 > threshold ? t1 : Double.MAX_VALUE, t2 > threshold ? t2 : Double.MAX_VALUE);
             if (collisionTime != Double.MAX_VALUE) {
                 eventQueue.add(new Event(collisionTime, p, eventType));
             }
