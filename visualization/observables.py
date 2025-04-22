@@ -19,14 +19,16 @@ def parse_simulation_file(file_path):
             i += 1
             obstaclePressure = float(lines[i].strip())
             i += 1
-            pressure_data.append([t, wallPressure, obstaclePressure])
+            temperature = float(lines[i].strip())
+            i += 1
+            pressure_data.append([t, wallPressure, obstaclePressure, temperature])
             for _ in range(n):
-                x, y, vx, vy = map(float, lines[i].strip().split())
-                particle_data.append([t, x, y, vx, vy])
+                x, y, vx, vy, r = map(float, lines[i].strip().split())
+                particle_data.append([t, x, y, vx, vy, r])
                 i += 1
 
-    df_pressure = pd.DataFrame(pressure_data, columns=['time', 'wallPressure', 'obstaclePressure'])
-    df_particles = pd.DataFrame(particle_data, columns=['time', 'x', 'y', 'vx', 'vy'])
+    df_pressure = pd.DataFrame(pressure_data, columns=['time', 'wallPressure', 'obstaclePressure', 'temperature'])
+    df_particles = pd.DataFrame(particle_data, columns=['time', 'x', 'y', 'vx', 'vy', 'radius'])
     return df_pressure, df_particles
 
 
@@ -37,15 +39,15 @@ def plot_pressure_over_time(df_pressure, use_log_scale=False):
     equilibrium_pressure = total_pressure.iloc[int(0.9 * len(total_pressure)):].mean()
 
     plt.figure(figsize=(10, 6))
-    plt.plot(df_pressure['time'], df_pressure['wallPressure'], label='Wall Pressure', color='blue')
-    plt.plot(df_pressure['time'], df_pressure['obstaclePressure'], label='Obstacle Pressure', color='red')
-    plt.plot(df_pressure['time'], total_pressure, label='Total Pressure', color='green', linestyle='--')
+    plt.plot(df_pressure['time'], df_pressure['wallPressure'], label='Presión Pared', color='blue')
+    plt.plot(df_pressure['time'], df_pressure['obstaclePressure'], label='Presión Obstaculo', color='red')
+    plt.plot(df_pressure['time'], total_pressure, label='Presión Total', color='green', linestyle='--')
 
     # Draw equilibrium line
-    plt.axhline(equilibrium_pressure, color='gray', linestyle=':', label=f'Equilibrium ≈ {equilibrium_pressure:.0f} N/m')
+    plt.axhline(equilibrium_pressure, color='gray', linestyle=':', label=f'Equilibrio ≈ {equilibrium_pressure:.0f} N/m')
 
-    plt.xlabel('Time [s]')
-    plt.ylabel('Pressure [N/m]')
+    plt.xlabel('Tiempo [s]')
+    plt.ylabel('Presión [N/m]')
     if use_log_scale:
         plt.yscale('log')
     plt.legend()
@@ -59,9 +61,9 @@ def plot_individual_pressures(df_pressure, use_log_scale=False):
 
     # Plot wall pressure
     plt.figure(figsize=(10, 6))
-    plt.plot(df_pressure['time'], df_pressure['wallPressure'], label='Presión Contenedor', color='blue')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Pressure [N/m]')
+    plt.plot(df_pressure['time'], df_pressure['wallPressure'], label='Presión Pared', color='blue')
+    plt.xlabel('Tiempo [s]')
+    plt.ylabel('Presión [N/m]')
     if use_log_scale:
         plt.yscale('log')
     plt.legend()
@@ -72,8 +74,8 @@ def plot_individual_pressures(df_pressure, use_log_scale=False):
     # Plot obstacle pressure
     plt.figure(figsize=(10, 6))
     plt.plot(df_pressure['time'], df_pressure['obstaclePressure'], label='Presión Obstaculo', color='red')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Pressure [N/m]')
+    plt.xlabel('Tiempo [s]')
+    plt.ylabel('Presión [N/m]')
     if use_log_scale:
         plt.yscale('log')
     plt.legend()
@@ -84,10 +86,21 @@ def plot_individual_pressures(df_pressure, use_log_scale=False):
     # Plot total pressure
     plt.figure(figsize=(10, 6))
     plt.plot(df_pressure['time'], total_pressure, label='Presión total', color='green', linestyle='--')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Pressure [N/m]')
+    plt.xlabel('Tiempo [s]')
+    plt.ylabel('Presión [N/m]')
     if use_log_scale:
         plt.yscale('log')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_temperature_over_time(df_pressure):
+    plt.figure(figsize=(10, 6))
+    plt.plot(df_pressure['time'], df_pressure['temperature'], label='Temperatura', color='orange')
+    plt.xlabel('Tiempo [s]')
+    plt.ylabel('Temperatura [K]')
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
@@ -101,6 +114,7 @@ def main():
     print(df_particles)
     plot_pressure_over_time(df_pressure, use_log_scale=True)
     plot_individual_pressures(df_pressure, use_log_scale=True)
+    plot_temperature_over_time(df_pressure)
 
 
 if __name__ == "__main__":
