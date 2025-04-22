@@ -108,19 +108,17 @@ public class MolecularSimulation {
         double[] velocity = {p.getXVelocity(), p.getYVelocity()};
         double norm = Math.sqrt(VectorialUtils.scalarProduct(position, position));
         double rc = Container.CONTAINER_DIAMETER / 2.0;
+        double[] normal = VectorialUtils.scalarDivision(position, norm);
+        double dotProduct = VectorialUtils.scalarProduct(velocity, normal);
+        double impulseMagnitude = 2 * p.getMass() * Math.abs(dotProduct);
+        totalWallImpulse += impulseMagnitude;
 
-        if (norm >= rc - p.getRadius()) {
-            double[] normal = VectorialUtils.scalarDivision(position, norm);
-            double dotProduct = VectorialUtils.scalarProduct(velocity, normal);
-            double impulseMagnitude = 2 * p.getMass() * Math.abs(dotProduct);
-            totalWallImpulse += impulseMagnitude;
+        p.setVelocity(
+                velocity[0] - 2 * dotProduct * normal[0],
+                velocity[1] - 2 * dotProduct * normal[1]
+        );
+        p.incrementCollisionCount();
 
-            p.setVelocity(
-                    velocity[0] - 2 * dotProduct * normal[0],
-                    velocity[1] - 2 * dotProduct * normal[1]
-            );
-            p.incrementCollisionCount();
-        }
     }
 
     private void handleObstacleCollision(Particle p) {
@@ -131,19 +129,17 @@ public class MolecularSimulation {
         double[] position = {p.getXPosition(), p.getYPosition()};
         double[] velocity = {p.getXVelocity(), p.getYVelocity()};
         double norm = Math.sqrt(VectorialUtils.scalarProduct(position, position));
+        double[] normal = VectorialUtils.scalarDivision(position, norm);
+        double dotProduct = VectorialUtils.scalarProduct(velocity, normal);
+        double impulseMagnitude = 2 * p.getMass() * Math.abs(dotProduct);
+        totalObstacleImpulse += impulseMagnitude;
 
-        if (norm <= Container.OBSTACLE_RADIUS + p.getRadius()) {
-            double[] normal = VectorialUtils.scalarDivision(position, norm);
-            double dotProduct = VectorialUtils.scalarProduct(velocity, normal);
-            double impulseMagnitude = 2 * p.getMass() * Math.abs(dotProduct);
-            totalObstacleImpulse += impulseMagnitude;
+        p.setVelocity(
+                velocity[0] - 2 * dotProduct * normal[0],
+                velocity[1] - 2 * dotProduct * normal[1]
+        );
+        p.incrementCollisionCount();
 
-            p.setVelocity(
-                    velocity[0] - 2 * dotProduct * normal[0],
-                    velocity[1] - 2 * dotProduct * normal[1]
-            );
-            p.incrementCollisionCount();
-        }
     }
 
     private void predictNewEvents(Event event) {
