@@ -11,6 +11,7 @@ import java.util.PriorityQueue;
 
 public class MolecularSimulation {
     private static final double EPSILON = 1e-20;
+    private static final double BOLTZMANN_CONSTANT = 1.38e-23;
     private final Container container;
     private final PriorityQueue<Event> eventQueue=new PriorityQueue<>(Comparator.comparing(Event::getEventTime));
     private final List<Particle> particles;
@@ -54,12 +55,8 @@ public class MolecularSimulation {
                     p.moveParticle(dt);
                 }
 
-                // Just for debug
-                if (eventTime > currentTime) {
-                    System.out.printf("updating time simulation by dt: %.6e\n", dt);
-                }
                 currentTime = eventTime;
-                System.out.printf("Simulation Time is now: %.6e\n", currentTime);
+                System.out.printf("Simulation Time is now: %.3f\n", currentTime);
 
                 switch (event.getType()) {
                     case WALL:
@@ -77,9 +74,21 @@ public class MolecularSimulation {
                 writeOutput();
                 predictNewEvents(event);
             }
-            // Just for debug
-            System.out.printf("IsValidEvent: %s, eventInTheFuture: %s\n", event.isValidEvent(), eventTime > currentTime);
         }
+    }
+
+    // System's temperature [Kelvin]
+    public double calculateTemperature() {
+        double sumMvSquared = 0;
+        for (Particle p : particles) {
+            double vx = p.getXVelocity();
+            double vy = p.getYVelocity();
+            double vSquared = vx * vx + vy * vy;
+            sumMvSquared += p.getMass() * vSquared;
+        }
+        int N = particles.size();
+        int d = 2; // 2D system
+        return sumMvSquared / (N * d * BOLTZMANN_CONSTANT);
     }
 
     private void handleParticleCollision(Particle p1, Particle p2) {
@@ -165,6 +174,7 @@ public class MolecularSimulation {
         Files.write(path,String.format("%.3e\n",currentTime).getBytes(),StandardOpenOption.APPEND);
         Files.write(path,String.format("%.3e\n",totalWallPressure).getBytes(),StandardOpenOption.APPEND);
         Files.write(path,String.format("%.3e\n",totalObstaclePressure).getBytes(),StandardOpenOption.APPEND);
+        Files.write(path,String.format("%.3e\n",calculateTemperature()).getBytes(),StandardOpenOption.APPEND);
         for(Particle p:particles){
             Files.write(path,p.toString().getBytes(), StandardOpenOption.APPEND);
         }
@@ -229,7 +239,7 @@ public class MolecularSimulation {
         if (delta >= 0) {
             double t1 = (-b - Math.sqrt(delta)) / (2 * a);
             double t2 = (-b + Math.sqrt(delta)) / (2 * a);
-            double threshold = 1e-10; // TODO: Check this
+            double threshold = 1e-10;
             double collisionTime = Math.min(t1 > threshold ? t1 : Double.MAX_VALUE, t2 > threshold ? t2 : Double.MAX_VALUE);
             if (collisionTime != Double.MAX_VALUE) {
                 eventQueue.add(new Event(currentTime+collisionTime, p, eventType));
