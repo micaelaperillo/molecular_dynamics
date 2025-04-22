@@ -236,7 +236,7 @@ public class MolecularSimulation {
             double threshold = 1e-10; // TODO: Check this
             double collisionTime = Math.min(t1 > threshold ? t1 : Double.MAX_VALUE, t2 > threshold ? t2 : Double.MAX_VALUE);
             if (collisionTime != Double.MAX_VALUE) {
-                eventQueue.add(new Event(collisionTime, p, eventType));
+                eventQueue.add(new Event(currentTime+collisionTime, p, eventType));
             }
         }
     }
