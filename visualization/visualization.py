@@ -1,20 +1,23 @@
 import sys
-
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib.patches import Circle
+import pygame
 import numpy as np
 
+# Configuration
+WIDTH, HEIGHT = 800, 800
+FPS = 60
+BACKGROUND_COLOR = (255, 255, 255)  # White
+PARTICLE_COLOR = (0, 0, 255)        # Blue
+CONTAINER_COLOR = (0, 0, 0)         # Black
+OBSTACLE_COLOR = (255, 0, 0)        # Red
 
+# Physics scaling
 CONTAINER_RADIUS = 0.05
-OBSTACLE_RADIUS = 0.005
-PARTICLE_RADIUS = 0.0005
+SCALE_FACTOR = min(WIDTH, HEIGHT) / (2 * CONTAINER_RADIUS * 1.1)  # Add 10% padding
 
-obstacle_present=True
-
-def parse_simulation_file():
+def parse_simulation_file(filename):
+    """Parse the simulation output file"""
     frames = []
-    with open(sys.argv[1], "r") as f:
+    with open(filename, "r") as f:
         lines = [line.strip() for line in f if line.strip()]
 
     idx = 0
@@ -22,7 +25,6 @@ def parse_simulation_file():
     idx += 1
 
     while idx < len(lines):
-
         time = float(lines[idx])
         wall_pressure = float(lines[idx + 1])
         obstacle_pressure = float(lines[idx + 2])
@@ -32,50 +34,113 @@ def parse_simulation_file():
         for _ in range(N):
             parts = lines[idx].split()
             x, y = float(parts[0]), float(parts[1])
-            radius=float(parts[4])
-            if radius==OBSTACLE_RADIUS:
-                obstacle_present=True
-            particles.append((x, y,radius))
+            radius = float(parts[4])
+            particles.append((x, y, radius))
             idx += 1
 
         frames.append((time, np.array(particles)))
 
-
     return frames
 
-frames = parse_simulation_file()
+def pygame_coords(x, y):
+    """Convert simulation coordinates to pygame screen coordinates"""
+    screen_x = WIDTH // 2 + x * SCALE_FACTOR
+    screen_y = HEIGHT // 2 - y * SCALE_FACTOR  # Flip y-axis
+    return int(screen_x), int(screen_y)
 
-fig, ax = plt.subplots()
-ax.set_aspect('equal')
-ax.set_xlim(-CONTAINER_RADIUS, CONTAINER_RADIUS)
-ax.set_ylim(-CONTAINER_RADIUS, CONTAINER_RADIUS)
+def pygame_radius(radius):
+    """Convert simulation radius to pygame pixels"""
+    return max(1, int(radius * SCALE_FACTOR))  # Ensure at least 1 pixel
 
-# Draw static background: container and obstacle
-container = Circle((0, 0), CONTAINER_RADIUS, color='black', fill=False, lw=2)
-ax.add_patch(container)
-if obstacle_present:
-    obstacle = Circle((0, 0), OBSTACLE_RADIUS, color='red', fill=False, lw=2)
-    ax.add_patch(obstacle)
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Particle Simulation")
+    clock = pygame.time.Clock()
+    font = pygame.font.SysFont('Arial', 18)
 
+    frames = parse_simulation_file(sys.argv[1])
+    current_frame = 0
+    paused = False
+    show_help = True
 
+    # Precompute all positions in screen coordinates
+    screen_positions = []
+    for time, particles in frames:
+        frame_data = []
+        for x, y, r in particles:
+            screen_x, screen_y = pygame_coords(x, y)
+            screen_r = pygame_radius(r)
+            frame_data.append((screen_x, screen_y, screen_r))
+        screen_positions.append(frame_data)
 
-# --- after you create the patches ---
-initial_positions = frames[0][1]
-particle_patches = [
-    Circle((x, y), r, color='blue') for (x, y,r) in initial_positions
-]
-for patch in particle_patches:
-    ax.add_patch(patch)
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    paused = not paused
+                elif event.key == pygame.K_h:
+                    show_help = not show_help
+                elif event.key == pygame.K_RIGHT and paused:
+                    current_frame = min(current_frame + 1, len(frames) - 1)
+                elif event.key == pygame.K_LEFT and paused:
+                    current_frame = max(current_frame - 1, 0)
 
-time_text = ax.text(-0.48, 0.46, '', fontsize=10, color='gray')
+        # Clear screen
+        screen.fill(BACKGROUND_COLOR)
 
-def animate(i):
-    time, particles = frames[i]
-    for patch, (x, y,r) in zip(particle_patches, particles):
-        patch.center = (x, y)
-    time_text.set_text(f"t = {time:.3e}")
-    return particle_patches + [time_text]
+        # Draw container
+        pygame.draw.circle(
+            screen, CONTAINER_COLOR,
+            (WIDTH // 2, HEIGHT // 2),
+            int(CONTAINER_RADIUS * SCALE_FACTOR),
+            1  # Line width
+        )
 
-ani = animation.FuncAnimation(fig, animate, frames=len(frames), interval=15, blit=False)
-plt.title("Particle Simulation with Obstacle")
-plt.show()
+        # Draw particles
+        for x, y, r in screen_positions[current_frame]:
+
+            pygame.draw.circle(screen, PARTICLE_COLOR, (x, y), r)
+
+        # Draw obstacle (if present)
+        obstacle_radius = pygame_radius(0.005)
+        pygame.draw.circle(
+            screen, OBSTACLE_COLOR,
+            (WIDTH // 2, HEIGHT // 2),
+            obstacle_radius,
+            1  # Line width
+        )
+
+        # Display time
+        time_text = font.render(f"Time: {frames[current_frame][0]:.3e}", True, (0, 0, 0))
+        screen.blit(time_text, (10, 10))
+
+        # Display help
+        if show_help:
+            help_text = [
+                "SPACE: Pause/Play",
+                "LEFT/RIGHT: Step frames (when paused)",
+                "H: Toggle help"
+            ]
+            for i, text in enumerate(help_text):
+                rendered = font.render(text, True, (0, 0, 0))
+                screen.blit(rendered, (10, 40 + i * 20))
+
+        pygame.display.flip()
+
+        if not paused:
+            current_frame = (current_frame + 1) % len(frames)
+
+        clock.tick(FPS)
+
+    pygame.quit()
+    sys.exit()
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python pygame_animation.py <simulation_file>")
+        sys.exit(1)
+    main()
