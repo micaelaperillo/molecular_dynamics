@@ -85,7 +85,7 @@ public class MolecularSimulation {
     private void handleParticleCollision(Particle p1, Particle p2) {
         double dx=p2.getXPosition()-p1.getXPosition();
         double dy=p2.getYPosition()-p1.getYPosition();
-        double dvx=p2.getXVelocity()-p1.getYVelocity();
+        double dvx=p2.getXVelocity()-p1.getXVelocity();
         double dvy=p2.getYVelocity()-p1.getYVelocity();
 
         double dvdr=dx*dvx+dy*dvy;
