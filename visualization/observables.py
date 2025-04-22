@@ -53,6 +53,7 @@ def plot_pressure_over_time(df_pressure, use_log_scale=False):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
+    plt.savefig('observables/pressure_over_time.png')
     plt.show()
 
 
@@ -69,7 +70,8 @@ def plot_individual_pressures(df_pressure, use_log_scale=False):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    plt.savefig('observables/wall_pressure.png')
+    plt.close()
 
     # Plot obstacle pressure
     plt.figure(figsize=(10, 6))
@@ -81,7 +83,8 @@ def plot_individual_pressures(df_pressure, use_log_scale=False):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    plt.savefig('observables/obstacle_pressure.png')
+    plt.close()
 
     # Plot total pressure
     plt.figure(figsize=(10, 6))
@@ -93,7 +96,8 @@ def plot_individual_pressures(df_pressure, use_log_scale=False):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    plt.savefig('observables/total_pressure.png')
+    plt.close()
 
 
 def plot_temperature_over_time(df_pressure):
@@ -104,6 +108,7 @@ def plot_temperature_over_time(df_pressure):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
+    plt.savefig('observables/temperature_over_time.png')
     plt.show()
 
 
@@ -112,6 +117,7 @@ def main():
     df_pressure, df_particles = parse_simulation_file(directory)
     print(df_pressure)
     print(df_particles)
+    os.makedirs('observables', exist_ok=True)
     plot_pressure_over_time(df_pressure, use_log_scale=True)
     plot_individual_pressures(df_pressure, use_log_scale=True)
     plot_temperature_over_time(df_pressure)
