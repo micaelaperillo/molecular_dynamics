@@ -9,7 +9,8 @@ BACKGROUND_COLOR = (255, 255, 255)  # White
 PARTICLE_COLOR = (0, 0, 255)        # Blue
 CONTAINER_COLOR = (0, 0, 0)         # Black
 OBSTACLE_COLOR = (255, 0, 0)        # Red
-
+OBSTACLE_RADIUS=0.005
+obstacle_present=True
 # Physics scaling
 CONTAINER_RADIUS = 0.05
 SCALE_FACTOR = min(WIDTH, HEIGHT) / (2 * CONTAINER_RADIUS * 1.1)  # Add 10% padding
@@ -26,18 +27,16 @@ def parse_simulation_file(filename):
 
     while idx < len(lines):
         time = float(lines[idx])
-        wall_pressure = float(lines[idx + 1])
-        obstacle_pressure = float(lines[idx + 2])
-        temperature = float(lines[idx + 3])
-        firstTimeCollisionWithObstacle = int(lines[idx + 4])
-        totalCollisionWithObstacle = int(lines[idx + 5])
-        idx += 6
+        idx += 3
 
         particles = []
         for _ in range(N):
             parts = lines[idx].split()
             x, y = float(parts[0]), float(parts[1])
             radius = float(parts[4])
+            if radius==OBSTACLE_RADIUS:
+                global obstacle_present
+                obstacle_present=False
             particles.append((x, y, radius))
             idx += 1
 
@@ -109,29 +108,14 @@ def main():
             pygame.draw.circle(screen, PARTICLE_COLOR, (x, y), r)
 
         # Draw obstacle (if present)
-        obstacle_radius = pygame_radius(0.005)
-        pygame.draw.circle(
-            screen, OBSTACLE_COLOR,
-            (WIDTH // 2, HEIGHT // 2),
-            obstacle_radius,
-            1  # Line width
-        )
-
-        # Display time
-        time_text = font.render(f"Time: {frames[current_frame][0]:.3e}", True, (0, 0, 0))
-        screen.blit(time_text, (10, 10))
-
-        # Display help
-        if show_help:
-            help_text = [
-                "SPACE: Pause/Play",
-                "LEFT/RIGHT: Step frames (when paused)",
-                "H: Toggle help"
-            ]
-            for i, text in enumerate(help_text):
-                rendered = font.render(text, True, (0, 0, 0))
-                screen.blit(rendered, (10, 40 + i * 20))
-
+        if obstacle_present:
+            obstacle_radius = pygame_radius(0.005)
+            pygame.draw.circle(
+                screen, OBSTACLE_COLOR,
+                (WIDTH // 2, HEIGHT // 2),
+                obstacle_radius,
+                1  # Line width
+            )
         pygame.display.flip()
 
         if not paused:
