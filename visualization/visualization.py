@@ -28,7 +28,10 @@ def parse_simulation_file(filename):
         time = float(lines[idx])
         wall_pressure = float(lines[idx + 1])
         obstacle_pressure = float(lines[idx + 2])
-        idx += 3
+        temperature = float(lines[idx + 3])
+        firstTimeCollisionWithObstacle = int(lines[idx + 4])
+        totalCollisionWithObstacle = int(lines[idx + 5])
+        idx += 6
 
         particles = []
         for _ in range(N):
