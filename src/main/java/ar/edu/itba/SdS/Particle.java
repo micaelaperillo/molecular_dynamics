@@ -23,7 +23,7 @@ public class Particle {
     }
     @Override
     public String toString(){
-        return String.format("%.3f %.3f %.3f %.3f\n",this.x,this.y,this.vx,this.vy);
+        return String.format("%f %f %f %f %.4f\n",this.x,this.y,this.vx,this.vy,this.radius);
     }
     public void moveParticle(double dt) {
         x+=vx*dt;

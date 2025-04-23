@@ -5,25 +5,31 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 public class MolecularSimulation {
-    private static final Double EPSILON = 1e-20;
+    private static final double EPSILON = 1e-20;
+    private static final double BOLTZMANN_CONSTANT = 1.38e-23;
     private final Container container;
-    private final PriorityQueue<Event> eventQueue=new PriorityQueue<>(
-            (e1, e2) -> {
-                double diff = e1.getEventTime() - e2.getEventTime();
-                if (Math.abs(diff) < EPSILON) {
-                    return 0;
-                }
-                return diff > 0 ? 1 : -1;
-            }
-    );
+    private final PriorityQueue<Event> eventQueue=new PriorityQueue<>(Comparator.comparing(Event::getEventTime));
     private final List<Particle> particles;
     private double currentTime=0;
     private final double maxSimulationTime;
     private final boolean obstaclePresent;
+    private double totalWallImpulse = 0;
+    private double totalObstacleImpulse = 0;
+    private double totalWallPressure = 0;
+    private double totalObstaclePressure = 0;
+    private double temperature = 0;
+    private int totalObstacleCollisions = 0;
+    private final Set<Particle> particlesCollidedWithObstacle = new HashSet<>();
+
+
+
     public MolecularSimulation(int particlesAmount, double particlesSpeed, double particlesRadius, double maxSimulationTime,boolean obstaclePresent) {
         this.container = new Container(particlesAmount, particlesSpeed, particlesRadius,obstaclePresent);
         this.obstaclePresent=obstaclePresent;
@@ -43,42 +49,62 @@ public class MolecularSimulation {
         Files.deleteIfExists(Paths.get(String.format("output-%d.txt",particles.size())));
         while (!eventQueue.isEmpty() && currentTime < maxSimulationTime) {
             Event event = eventQueue.poll();
-            if(!event.isValidEvent())
-                continue;
             double eventTime = event.getEventTime();
-            double dt = eventTime - currentTime;
 
-            // Advance particles to the time of the event
-            for (Particle p : particles) {
-                p.moveParticle(dt);
+            // Just for debug
+            System.out.printf("CurrentTime: %.10e, EventTime: %.10e, QueueSize: %d\n",
+                    currentTime, eventTime, eventQueue.size());
+
+            if(event.isValidEvent() && eventTime > currentTime) {
+                // Advance particles to the time of the event
+                double dt = eventTime - currentTime;
+                for (Particle p : particles) {
+                    p.moveParticle(dt);
+                }
+
+                currentTime = eventTime;
+                System.out.printf("Simulation Time is now: %.3f\n", currentTime);
+
+                switch (event.getType()) {
+                    case WALL:
+                        handleWallCollision(event.getParticle1());
+                        break;
+                    case OBSTACLE:
+                        handleObstacleCollision(event.getParticle1());
+                        break;
+                    case PARTICLE_PARTICLE:
+                        handleParticleCollision(event.getParticle1(), event.getParticle2());
+                        break;
+                }
+
+                calculateAndPrintPressures();
+                temperature = calculateTemperature();
+                writeOutput();
+                predictNewEvents(event);
             }
-
-            // Update simulation time
-            currentTime = eventTime;
-
-            // Handle the collision
-            switch (event.getType()) {
-                case WALL:
-                    handleWallCollision(event.getParticle1());
-                    break;
-                case OBSTACLE:
-                    handleObstacleCollision(event.getParticle1());
-                    break;
-                case PARTICLE_PARTICLE:
-                    handleParticleCollision(event.getParticle1(), event.getParticle2());
-                    break;
-            }
-
-            writeOutput();
-            // Predict new events for the particles involved in the collision
-            predictNewEvents(event);
         }
+    }
+
+    // System's temperature [Kelvin]
+    public double calculateTemperature() {
+        double sumMvSquared = 0;
+        for (Particle p : particles) {
+            double vx = p.getXVelocity();
+            double vy = p.getYVelocity();
+            double vSquared = vx * vx + vy * vy;
+            sumMvSquared += p.getMass() * vSquared;
+        }
+        int N = particles.size();
+        int d = 2; // 2D system
+        double T = sumMvSquared / (N * d * BOLTZMANN_CONSTANT);
+        System.out.printf("Temperature is %.3e\n", T);
+        return T;
     }
 
     private void handleParticleCollision(Particle p1, Particle p2) {
         double dx=p2.getXPosition()-p1.getXPosition();
         double dy=p2.getYPosition()-p1.getYPosition();
-        double dvx=p2.getXVelocity()-p1.getYVelocity();
+        double dvx=p2.getXVelocity()-p1.getXVelocity();
         double dvy=p2.getYVelocity()-p1.getYVelocity();
 
         double dvdr=dx*dvx+dy*dvy;
@@ -97,27 +123,45 @@ public class MolecularSimulation {
     }
 
     private void handleWallCollision(Particle p) {
-        double x = p.getXPosition();
-        double y = p.getYPosition();
-        double vx = p.getXVelocity();
-        double vy = p.getYVelocity();
+        double[] position = {p.getXPosition(), p.getYPosition()};
+        double[] velocity = {p.getXVelocity(), p.getYVelocity()};
+        double norm = Math.sqrt(VectorialUtils.scalarProduct(position, position));
+        double rc = Container.CONTAINER_DIAMETER / 2.0;
+        double[] normal = VectorialUtils.scalarDivision(position, norm);
+        double dotProduct = VectorialUtils.scalarProduct(velocity, normal);
+        double impulseMagnitude = 2 * p.getMass() * Math.abs(dotProduct);
+        totalWallImpulse += impulseMagnitude;
 
-        double norm = Math.sqrt(x * x + y * y);
-        double normalX = x /  norm;
-        double normalY = y /  norm;
+        p.setVelocity(
+                velocity[0] - 2 * dotProduct * normal[0],
+                velocity[1] - 2 * dotProduct * normal[1]
+        );
+        p.incrementCollisionCount();
 
-        // Reverse the velocity
-        double dotProduct = vx * normalX + vy * normalY;
-        p.setVelocity(vx - 2 * dotProduct * normalX, vy - 2 * dotProduct * normalY);
     }
 
     private void handleObstacleCollision(Particle p) {
-        if(!this.obstaclePresent)
+        if (!obstaclePresent) {
             return;
-        // TODO Implement
-        p.setVelocity(-p.getXVelocity(), -p.getYVelocity());
+        }
+
+        double[] position = {p.getXPosition(), p.getYPosition()};
+        double[] velocity = {p.getXVelocity(), p.getYVelocity()};
+        double norm = Math.sqrt(VectorialUtils.scalarProduct(position, position));
+        double[] normal = VectorialUtils.scalarDivision(position, norm);
+        double dotProduct = VectorialUtils.scalarProduct(velocity, normal);
+        double impulseMagnitude = 2 * p.getMass() * Math.abs(dotProduct);
+        totalObstacleImpulse += impulseMagnitude;
+
+        p.setVelocity(
+                velocity[0] - 2 * dotProduct * normal[0],
+                velocity[1] - 2 * dotProduct * normal[1]
+        );
+        p.incrementCollisionCount();
+        totalObstacleCollisions++;
+        particlesCollidedWithObstacle.add(p);
     }
-    
+
     private void predictNewEvents(Event event) {
         Particle p1 = event.getParticle1();
         Particle p2 = event.getParticle2();
@@ -139,6 +183,11 @@ public class MolecularSimulation {
         if(!Files.exists(path))
             Files.write(path,String.format("%d\n",particles.size()).getBytes(),StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         Files.write(path,String.format("%.3e\n",currentTime).getBytes(),StandardOpenOption.APPEND);
+        Files.write(path,String.format("%.3e\n",totalWallPressure).getBytes(),StandardOpenOption.APPEND);
+        Files.write(path,String.format("%.3e\n",totalObstaclePressure).getBytes(),StandardOpenOption.APPEND);
+        Files.write(path,String.format("%.3e\n",temperature).getBytes(),StandardOpenOption.APPEND);
+        Files.write(path, String.format("%d\n", particlesCollidedWithObstacle.size()).getBytes(), StandardOpenOption.APPEND);
+        Files.write(path, String.format("%d\n", totalObstacleCollisions).getBytes(), StandardOpenOption.APPEND);
         for(Particle p:particles){
             Files.write(path,p.toString().getBytes(), StandardOpenOption.APPEND);
         }
@@ -155,16 +204,17 @@ public class MolecularSimulation {
     }
 
     private Double timeToParticleCollision(Particle p1,Particle p2){
-       double [] dr={p2.getXPosition()-p1.getXPosition(), p2.getYPosition()-p1.getYPosition()};
-       double [] dv={p2.getXVelocity()-p1.getXVelocity(), p2.getYVelocity()-p1.getYVelocity()};
-       double dvdr=VectorialUtils.scalarProduct(dr,dv);
-       if(dvdr>=0)
-           return null;
-       double sigma=p1.getRadius()+p2.getRadius();
-       double d=dvdr*dvdr-VectorialUtils.scalarProduct(dv,dv)*(VectorialUtils.scalarProduct(dr,dr)-(sigma*sigma));
-       if(d<0)
-           return null;
-       return -(dvdr+Math.sqrt(d))/VectorialUtils.scalarProduct(dv,dv);
+        double [] dr={p2.getXPosition()-p1.getXPosition(), p2.getYPosition()-p1.getYPosition()};
+        double [] dv={p2.getXVelocity()-p1.getXVelocity(), p2.getYVelocity()-p1.getYVelocity()};
+        double dvdr=VectorialUtils.scalarProduct(dr,dv);
+        double dvdv=VectorialUtils.scalarProduct(dv,dv);
+        if(dvdr>=0)
+            return null;
+        double sigma=p1.getRadius()+p2.getRadius();
+        double d=dvdr*dvdr-dvdv*(VectorialUtils.scalarProduct(dr,dr)-(sigma*sigma));
+        double dt = -(dvdr + Math.sqrt(d)) / dvdv;
+
+        return (d >= 0 && dt >= 0) ? dt : null;
     }
 
     // Wall collision: Intersection with circle of radius Re
@@ -202,11 +252,24 @@ public class MolecularSimulation {
         if (delta >= 0) {
             double t1 = (-b - Math.sqrt(delta)) / (2 * a);
             double t2 = (-b + Math.sqrt(delta)) / (2 * a);
-            double collisionTime = Math.min(t1 > 0 ? t1 : Double.MAX_VALUE, t2 > 0 ? t2 : Double.MAX_VALUE);
+            double threshold = 1e-10;
+            double collisionTime = Math.min(t1 > threshold ? t1 : Double.MAX_VALUE, t2 > threshold ? t2 : Double.MAX_VALUE);
             if (collisionTime != Double.MAX_VALUE) {
-                eventQueue.add(new Event(collisionTime, p, eventType));
+                eventQueue.add(new Event(currentTime+collisionTime, p, eventType));
             }
         }
     }
 
+    private void calculateAndPrintPressures() {
+        double wallLength = Math.PI * Container.CONTAINER_DIAMETER; // Circumference of the container
+        double obstacleLength = 2 * Math.PI * Container.OBSTACLE_RADIUS; // Circumference of the obstacle
+
+        totalWallPressure = totalWallImpulse / (wallLength * currentTime);
+        totalObstaclePressure = obstaclePresent ? totalObstacleImpulse / (obstacleLength * currentTime) : 0;
+
+        System.out.printf("Wall Pressure: %.6e\n", totalWallPressure);
+        if (obstaclePresent) {
+            System.out.printf("Obstacle Pressure: %.6e\n", totalObstaclePressure);
+        }
+    }
 }

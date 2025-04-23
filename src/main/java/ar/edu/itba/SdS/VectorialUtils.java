@@ -11,4 +11,12 @@ public class VectorialUtils {
         }
         return result;
     }
+
+    public static double[] scalarDivision(double[] v, double n) {
+        double[] result = new double[v.length];
+        for (int i = 0; i < v.length; i++) {
+               result[i] = v[i] / n;
+        }
+        return result;
+    }
 }

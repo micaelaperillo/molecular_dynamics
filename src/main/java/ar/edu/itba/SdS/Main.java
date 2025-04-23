@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        MolecularSimulation simulation=new MolecularSimulation(210,1,5e-4,10,true);
+        MolecularSimulation simulation=new MolecularSimulation(210,1,5e-4,0.05,true);
         simulation.runSimulation();
     }
 }

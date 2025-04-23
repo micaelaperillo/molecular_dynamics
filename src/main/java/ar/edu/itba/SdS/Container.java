@@ -35,7 +35,7 @@ public class Container {
             int maxAttempts = 10000;
             boolean placed = false;
             for (int attempts = 0; attempts < maxAttempts && !placed; attempts++) {
-                double r = minR + rand.nextDouble() * (maxR - minR);
+                double r = rand.nextDouble(minR,maxR);
                 double theta = rand.nextDouble() * 2 * Math.PI;
                 double x = r * Math.cos(theta);
                 double y = r * Math.sin(theta);
@@ -52,8 +52,6 @@ public class Container {
             if (!placed) {
                 throw new RuntimeException("Max attempts");
             }
-            System.out.println(particles.size());
-
         }
     }
 
