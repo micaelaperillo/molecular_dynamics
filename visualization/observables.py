@@ -39,16 +39,25 @@ def parse_simulation_file(file_path):
     return df_pressure, df_obstacle_collisions, df_particles
 
 def parse_multiple_simulation_files(files):
-    df_pressure = pd.DataFrame()
-    df_obstacle_collisions = pd.DataFrame()
-    df_particles = pd.DataFrame()
+    df_pressure_list = []
+    df_obstacle_collisions_list = []
+    df_particles_list = []
 
     for f in files:
-        df_pressure[f] = parse_simulation_file(f)
-        df_obstacle_collisions[f] = parse_simulation_file(f)
-        df_particles[f] = parse_simulation_file(f)
+        pressure, collisions, particles = parse_simulation_file(f)
+        pressure['simulation'] = f
+        collisions['simulation'] = f
+        particles['simulation'] = f
+        df_pressure_list.append(pressure)
+        df_obstacle_collisions_list.append(collisions)
+        df_particles_list.append(particles)
+
+    df_pressure = pd.concat(df_pressure_list, ignore_index=True)
+    df_obstacle_collisions = pd.concat(df_obstacle_collisions_list, ignore_index=True)
+    df_particles = pd.concat(df_particles_list, ignore_index=True)
 
     return df_pressure, df_obstacle_collisions, df_particles
+
 
 def plot_collisions_over_time(df_collisions):
     plt.figure(figsize=(10, 6))
@@ -151,15 +160,17 @@ def plot_temperature_over_time(df_pressure):
     plt.show()
 
 def plot_pressure_over_temperature(df_pressure):
+    df = df_pressure.groupby('simulation').agg({
+    'obstaclePressure': 'mean',
+    'temperature': 'mean'
+    }).reset_index()
+
     plt.figure(figsize=(10, 6))
-    plt.plot(df_pressure['temperature'], df_pressure['wallPressure'], label='Presión Pared', color='blue')
-    plt.plot(df_pressure['temperature'], df_pressure['obstaclePressure'], label='Presión Obstaculo', color='red')   
-    plt.legend()
-    plt.xlabel('Temperatura [K]')
-    plt.ylabel('Presión [N/m]')
+    plt.plot(df['obstaclePressure'], df['temperature'], 'o', label='Simulaciones')
+    plt.xlabel('Presión [N/m]')
+    plt.ylabel('Temperatura [K]')
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig('observables/pressure_over_temperature.png')
     plt.show()
 
 
@@ -176,15 +187,15 @@ def main():
         files = sys.argv[1:]
         df_pressure, df_obstacle_collision, df_particles = parse_multiple_simulation_files(files)
 
-    print(df_pressure)
-    print(df_particles)
-    print(df_obstacle_collision)
-    os.makedirs('observables', exist_ok=True)
-    plot_pressure_over_time(df_pressure, use_log_scale=True)
-    plot_individual_pressures(df_pressure, use_log_scale=True)
-    plot_temperature_over_time(df_pressure)
-    plot_collisions_over_time(df_obstacle_collision)
-    plot_pressure_over_temperature(df_pressure)
+    # print(df_pressure)
+    # print(df_particles)
+    # print(df_obstacle_collision)
+    # os.makedirs('observables', exist_ok=True)
+    # plot_pressure_over_time(df_pressure, use_log_scale=True)
+    # plot_individual_pressures(df_pressure, use_log_scale=True)
+    # plot_temperature_over_time(df_pressure)
+    # plot_collisions_over_time(df_obstacle_collision)
+    # plot_pressure_over_temperature(df_pressure)
 
 if __name__ == "__main__":
     main();
