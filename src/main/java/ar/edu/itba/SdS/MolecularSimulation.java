@@ -6,8 +6,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 public class MolecularSimulation {
     private static final double EPSILON = 1e-20;
@@ -22,6 +24,11 @@ public class MolecularSimulation {
     private double totalObstacleImpulse = 0;
     private double totalWallPressure = 0;
     private double totalObstaclePressure = 0;
+    private double temperature = 0;
+    private int totalObstacleCollisions = 0;
+    private final Set<Particle> particlesCollidedWithObstacle = new HashSet<>();
+
+
 
     public MolecularSimulation(int particlesAmount, double particlesSpeed, double particlesRadius, double maxSimulationTime,boolean obstaclePresent) {
         this.container = new Container(particlesAmount, particlesSpeed, particlesRadius,obstaclePresent);
@@ -71,6 +78,7 @@ public class MolecularSimulation {
                 }
 
                 calculateAndPrintPressures();
+                temperature = calculateTemperature();
                 writeOutput();
                 predictNewEvents(event);
             }
@@ -88,7 +96,9 @@ public class MolecularSimulation {
         }
         int N = particles.size();
         int d = 2; // 2D system
-        return sumMvSquared / (N * d * BOLTZMANN_CONSTANT);
+        double T = sumMvSquared / (N * d * BOLTZMANN_CONSTANT);
+        System.out.printf("Temperature is %.3e\n", T);
+        return T;
     }
 
     private void handleParticleCollision(Particle p1, Particle p2) {
@@ -148,7 +158,8 @@ public class MolecularSimulation {
                 velocity[1] - 2 * dotProduct * normal[1]
         );
         p.incrementCollisionCount();
-
+        totalObstacleCollisions++;
+        particlesCollidedWithObstacle.add(p);
     }
 
     private void predictNewEvents(Event event) {
@@ -174,7 +185,9 @@ public class MolecularSimulation {
         Files.write(path,String.format("%.3e\n",currentTime).getBytes(),StandardOpenOption.APPEND);
         Files.write(path,String.format("%.3e\n",totalWallPressure).getBytes(),StandardOpenOption.APPEND);
         Files.write(path,String.format("%.3e\n",totalObstaclePressure).getBytes(),StandardOpenOption.APPEND);
-        Files.write(path,String.format("%.3e\n",calculateTemperature()).getBytes(),StandardOpenOption.APPEND);
+        Files.write(path,String.format("%.3e\n",temperature).getBytes(),StandardOpenOption.APPEND);
+        Files.write(path, String.format("%d\n", particlesCollidedWithObstacle.size()).getBytes(), StandardOpenOption.APPEND);
+        Files.write(path, String.format("%d\n", totalObstacleCollisions).getBytes(), StandardOpenOption.APPEND);
         for(Particle p:particles){
             Files.write(path,p.toString().getBytes(), StandardOpenOption.APPEND);
         }
