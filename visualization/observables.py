@@ -38,6 +38,17 @@ def parse_simulation_file(file_path):
     df_particles = pd.DataFrame(particle_data, columns=['time', 'x', 'y', 'vx', 'vy', 'radius'])
     return df_pressure, df_obstacle_collisions, df_particles
 
+def parse_multiple_simulation_files(files):
+    df_pressure = pd.DataFrame()
+    df_obstacle_collisions = pd.DataFrame()
+    df_particles = pd.DataFrame()
+
+    for f in files:
+        df_pressure[f] = parse_simulation_file(f)
+        df_obstacle_collisions[f] = parse_simulation_file(f)
+        df_particles[f] = parse_simulation_file(f)
+
+    return df_pressure, df_obstacle_collisions, df_particles
 
 def plot_collisions_over_time(df_collisions):
     plt.figure(figsize=(10, 6))
@@ -139,10 +150,32 @@ def plot_temperature_over_time(df_pressure):
     plt.savefig('observables/temperature_over_time.png')
     plt.show()
 
+def plot_pressure_over_temperature(df_pressure):
+    plt.figure(figsize=(10, 6))
+    plt.plot(df_pressure['temperature'], df_pressure['wallPressure'], label='Presión Pared', color='blue')
+    plt.plot(df_pressure['temperature'], df_pressure['obstaclePressure'], label='Presión Obstaculo', color='red')   
+    plt.legend()
+    plt.xlabel('Temperatura [K]')
+    plt.ylabel('Presión [N/m]')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('observables/pressure_over_temperature.png')
+    plt.show()
+
 
 def main():
-    directory = sys.argv[1]
-    df_pressure, df_obstacle_collision, df_particles = parse_simulation_file(directory)
+
+    if len(sys.argv) == 1:
+        return print("Usage: python observables.py <directory>")
+
+    elif len(sys.argv) == 2:
+        directory = sys.argv[1]
+        df_pressure, df_obstacle_collision, df_particles = parse_simulation_file(directory)
+    
+    else:
+        files = sys.argv[1:]
+        df_pressure, df_obstacle_collision, df_particles = parse_multiple_simulation_files(files)
+
     print(df_pressure)
     print(df_particles)
     print(df_obstacle_collision)
@@ -151,6 +184,7 @@ def main():
     plot_individual_pressures(df_pressure, use_log_scale=True)
     plot_temperature_over_time(df_pressure)
     plot_collisions_over_time(df_obstacle_collision)
+    plot_pressure_over_temperature(df_pressure)
 
 if __name__ == "__main__":
     main();

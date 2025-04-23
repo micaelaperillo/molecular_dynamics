@@ -74,5 +74,9 @@ public class Container {
         return true;
     }
 
+    public double getParticlesSpeed() {
+        return particlesSpeed;
+    }
+
     public List<Particle> getParticles(){return particles;}
 }

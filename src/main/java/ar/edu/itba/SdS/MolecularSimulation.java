@@ -46,7 +46,7 @@ public class MolecularSimulation {
     }
 
     public void runSimulation() throws IOException{
-        Files.deleteIfExists(Paths.get(String.format("output-%d.txt",particles.size())));
+        Files.deleteIfExists(Paths.get(String.format("output-%d-%.0f.txt",particles.size(), container.getParticlesSpeed())));
         while (!eventQueue.isEmpty() && currentTime < maxSimulationTime) {
             Event event = eventQueue.poll();
             double eventTime = event.getEventTime();
@@ -179,7 +179,7 @@ public class MolecularSimulation {
         }
     }
     private void writeOutput() throws IOException {
-        Path path=Paths.get(String.format("output-%d.txt",particles.size()));
+        Path path = Paths.get(String.format("output-%d-%.0f.txt", particles.size(), container.getParticlesSpeed()));
         if(!Files.exists(path))
             Files.write(path,String.format("%d\n",particles.size()).getBytes(),StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         Files.write(path,String.format("%.3e\n",currentTime).getBytes(),StandardOpenOption.APPEND);
