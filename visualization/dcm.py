@@ -54,9 +54,13 @@ def compute_msd(times, positions, start_time=0.5, interval=0.2, max_time=None):
 if __name__=="__main__":
     filename = sys.argv[1]
     times, positions = parse_big_particle_positions(filename)
-    filtered_times, msd, stdev = compute_msd(times, positions, start_time=0)
+    filtered_times, msd, stdev = compute_msd(times, positions, start_time=0.5)
+    coeffs = np.polyfit(filtered_times, msd, 1)
+    slope = coeffs[0]
+    D = slope / 4
 
     plt.errorbar(filtered_times, msd,yerr=stdev, fmt='-o')
+    plt.plot(times, np.polyval(coeffs, times), label=f"Fit (D ≈ {D:.2e})", linestyle='--')
     plt.xlabel('Tiempo [s]')
     plt.ylabel('DCM [$m^{2}$]')
     plt.grid(True)
