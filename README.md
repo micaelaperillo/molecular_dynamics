@@ -1,28 +1,15 @@
-# molecular_dynamics
+# Event Driven Molecular Dynamics
 
-## Predicción de Eventos
+Este proyecto simula un sistema molecular bidimensional donde partículas se mueven dentro de un contenedor circular y colisionan elásticamente entre sí, con las paredes del contenedor y, opcionalmente, con un obstáculo fijo en el centro. La simulación permite estudiar el comportamiento dinámico del sistema y calcular la presión ejercida por las partículas.
 
-### Colisión con el recinto circular:  
-Una colisión ocurre cuando la trayectoria de la partícula intersecta el círculo: 
-$x^2 + y^2 = R_e^2$ \
-Dada la posición actual de la partícula $(r_{xi}, r_{yi})$ y su velocidad $(v_{xi}, v_{yi})$.\
-La posición futura en el tiempo $t + \Delta t$ es: $(r_{xi} + v_{xi} \cdot \Delta t,\ r_{yi} + v_{yi} \cdot \Delta t)$ \
-Al sustituir en la ecuación del círculo da lugar a una ecuación cuadrática en $\Delta t$.  
-Resolvemos para $\Delta t > 0$ y seleccionamos la raíz positiva más pequeña.
+## Parámetros
 
-### Colisión con el obstáculo fijo:
-De manera similar al anterior, se busca cuando la partícula intersecta: $x^2 + y^2 = R_o^2$. \
-Utilizamos el mismo método: sustituimos la posición futura en la ecuación, resolvemos la cuadrática para $\Delta t > 0$, y elegimos la solución positiva más pequeña.
+- `particlesAmount`: cantidad total de partículas que se van a simular dentro del recinto.
 
-### Colisión con otra partícula:  
-Para cada par de partículas $i$ y $j$ con posiciones $(r_{xi}, r_{yi})$, $(r_{xj}, r_{yj})$ y velocidades $(v_{xi}, v_{yi})$, $(v_{xj}, v_{yj})$, 
-calculamos cuándo la distancia entre los centros es igual a $2r$: \
-$\| \vec{r}_i(t + \Delta t) - \vec{r}_j(t + \Delta t) \| = 2r$ \
-Esto lleva a una ecuación cuadrática en $\Delta t$. Resolvemos y seleccionamos la raíz positiva más pequeña.
+- `particlesSpeed`: velocidad inicial de todas las partículas.
 
+- `particlesRadius`: radio de cada partícula.
 
-**Mantener una cola de prioridad** con todos los eventos de colisión predichos, ordenados por el tiempo de ocurrencia.
-Cada evento debe incluir:
-- El tiempo de colisión
-- El tipo de colisión (recinto, obstáculo, o partícula-partícula)
-- Las partículas involucradas
+- `maxSimulationTime`: tiempo máximo que va a durar la simulación (en segundos).
+
+- `obstaclePresent`: indica si hay o no un obstáculo fijo en el centro del contenedor (booleano: true o false).
