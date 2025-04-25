@@ -24,7 +24,7 @@ public class MolecularSimulation {
     private double totalObstacleImpulse = 0;
     private double totalWallPressure = 0;
     private double totalObstaclePressure = 0;
-    private double temperature = 0;
+    // private double temperature = 0;
     private int totalObstacleCollisions = 0;
     private final Set<Particle> particlesCollidedWithObstacle = new HashSet<>();
 
@@ -78,7 +78,7 @@ public class MolecularSimulation {
                 }
 
                 calculateAndPrintPressures();
-                temperature = calculateTemperature();
+                // temperature = calculateTemperature();
                 writeOutput();
                 predictNewEvents(event);
             }
@@ -86,20 +86,20 @@ public class MolecularSimulation {
     }
 
     // System's temperature [Kelvin]
-    public double calculateTemperature() {
-        double sumMvSquared = 0;
-        for (Particle p : particles) {
-            double vx = p.getXVelocity();
-            double vy = p.getYVelocity();
-            double vSquared = vx * vx + vy * vy;
-            sumMvSquared += p.getMass() * vSquared;
-        }
-        int N = particles.size();
-        int d = 2; // 2D system
-        double T = sumMvSquared / (N * d * BOLTZMANN_CONSTANT);
-        System.out.printf("Temperature is %.3e\n", T);
-        return T;
-    }
+//    public double calculateTemperature() {
+//        double sumMvSquared = 0;
+//        for (Particle p : particles) {
+//            double vx = p.getXVelocity();
+//            double vy = p.getYVelocity();
+//            double vSquared = vx * vx + vy * vy;
+//            sumMvSquared += p.getMass() * vSquared;
+//        }
+//        int N = particles.size();
+//        int d = 2; // 2D system
+//        double T = sumMvSquared / (N * d * BOLTZMANN_CONSTANT);
+//        System.out.printf("Temperature is %.3e\n", T);
+//        return T;
+//    }
 
     private void handleParticleCollision(Particle p1, Particle p2) {
         double dx=p2.getXPosition()-p1.getXPosition();
@@ -185,7 +185,7 @@ public class MolecularSimulation {
         Files.write(path,String.format("%.3e\n",currentTime).getBytes(),StandardOpenOption.APPEND);
         Files.write(path,String.format("%.3e\n",totalWallPressure).getBytes(),StandardOpenOption.APPEND);
         Files.write(path,String.format("%.3e\n",totalObstaclePressure).getBytes(),StandardOpenOption.APPEND);
-        Files.write(path,String.format("%.3e\n",temperature).getBytes(),StandardOpenOption.APPEND);
+        //Files.write(path,String.format("%.3e\n",temperature).getBytes(),StandardOpenOption.APPEND);
         Files.write(path, String.format("%d\n", particlesCollidedWithObstacle.size()).getBytes(), StandardOpenOption.APPEND);
         Files.write(path, String.format("%d\n", totalObstacleCollisions).getBytes(), StandardOpenOption.APPEND);
         for(Particle p:particles){
