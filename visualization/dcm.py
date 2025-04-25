@@ -148,8 +148,10 @@ def plot_dcm(average_msd_df):
     plt.show()
 
 def compute_diffusion_coefficient(average_msd_df):
-    times = average_msd_df['time'].values
-    dcm = average_msd_df['average_msd'].values
+    # Filter the data for the initial linear growth phase
+    filtered_df = average_msd_df[average_msd_df['time'] <= 0.18]
+    times = filtered_df['time'].values
+    dcm = filtered_df['average_msd'].values
 
     if len(times) != len(dcm):
         raise ValueError("The lengths of 'time' and 'average_msd' columns must be equal.")
