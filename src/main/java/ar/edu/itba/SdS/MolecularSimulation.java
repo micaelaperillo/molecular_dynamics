@@ -78,28 +78,11 @@ public class MolecularSimulation {
                 }
 
                 calculateAndPrintPressures();
-                // temperature = calculateTemperature();
                 writeOutput();
                 predictNewEvents(event);
             }
         }
     }
-
-    // System's temperature [Kelvin]
-//    public double calculateTemperature() {
-//        double sumMvSquared = 0;
-//        for (Particle p : particles) {
-//            double vx = p.getXVelocity();
-//            double vy = p.getYVelocity();
-//            double vSquared = vx * vx + vy * vy;
-//            sumMvSquared += p.getMass() * vSquared;
-//        }
-//        int N = particles.size();
-//        int d = 2; // 2D system
-//        double T = sumMvSquared / (N * d * BOLTZMANN_CONSTANT);
-//        System.out.printf("Temperature is %.3e\n", T);
-//        return T;
-//    }
 
     private void handleParticleCollision(Particle p1, Particle p2) {
         double dx=p2.getXPosition()-p1.getXPosition();
