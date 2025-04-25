@@ -59,7 +59,7 @@ In the compute_dcm function, the goal is to align the time points from multiple 
 evenly spaced time points (common_times). This is necessary because the time points in each simulation run (sorted_times)
 may not match exactly. Interpolation is used to estimate the x-coordinates (sorted_x) at these common time points.
 """
-def compute_dcm(times, all_positions, start_time=0.05, num_points=100):
+def compute_dcm(times, all_positions, start_time=0.05, num_points=50):
     """
     Computes the average Mean Squared Displacement (MSD) and its standard deviation over multiple simulation runs.
     """
@@ -128,6 +128,46 @@ def compute_dcm(times, all_positions, start_time=0.05, num_points=100):
     })
 
 
+import matplotlib.pyplot as plt
+
+def plot_linear_dcm_interval(average_msd_df, t_min=0.05, t_max=0.2):
+    mask = (average_msd_df['time'] >= t_min) & (average_msd_df['time'] <= t_max)
+    linear_df = average_msd_df[mask]
+
+    times = linear_df['time'].values
+    msd = linear_df['average_msd'].values
+    std_dev = linear_df['std_deviation'].values
+
+    # Perform linear regression
+    slope, intercept, r_value, p_value, std_err = linregress(times, msd)
+    fit_line = slope * times + intercept
+
+    # Plot the data as points with standard deviation and linear regression
+    plt.figure(figsize=(8, 6))
+    plt.errorbar(
+        times,
+        msd,
+        yerr=std_dev,
+        fmt='o',  # Points only
+        color='#2ca25f',
+        ecolor='#99d8c9',
+        capsize=4,
+    )
+    plt.plot(
+        times,
+        fit_line,
+        'r--',
+        label=f'Ajuste Lineal'
+    )
+    plt.xlabel('Tiempo [s]', fontsize=20)
+    plt.ylabel('< DCM > [$m^2$]', fontsize=20)
+    plt.tick_params(axis='both', which='major', labelsize=16)
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_dcm(average_msd_df):
     plt.figure(figsize=(8, 6))
     plt.errorbar(
@@ -166,6 +206,22 @@ def compute_diffusion_coefficient(average_msd_df):
     return diffusion_coefficient, slope, std_err
 
 
+def estimate_diffusion_coefficient(msd_df, dimension=2, t_min=0.05, t_max=0.2):
+    mask = (msd_df['time'] >= t_min) & (msd_df['time'] <= t_max)
+    times = msd_df['time'][mask]
+    msd = msd_df['average_msd'][mask]
+
+    slope, intercept, r_value, p_value, std_err = linregress(times, msd)
+    D = slope / (2 * dimension)
+
+    return {
+        'slope': slope,
+        'intercept': intercept,
+        'D': D,
+        'std_err': std_err,
+        'r_squared': r_value ** 2
+    }
+
 if __name__=="__main__":
     if len(sys.argv) < 2:
         print("Usage: python dcm.py <simulation_file1> <simulation_file2> ...")
@@ -182,7 +238,9 @@ if __name__=="__main__":
 
     average_msd_df = compute_dcm(all_times, all_positions)
     d, slope, std_err = compute_diffusion_coefficient(average_msd_df)
-    plot_dcm(average_msd_df)
+    #plot_dcm(average_msd_df)
+    plot_linear_dcm_interval(average_msd_df)
+
     print(f"Coeficiente de difusión (D): {d:.1e}")
     print(f"Pendiente: {slope:.1e}")
     print(f"Error std: {std_err:.1e}")
